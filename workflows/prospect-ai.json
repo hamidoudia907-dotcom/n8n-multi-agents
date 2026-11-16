@@ -1,0 +1,138 @@
+{
+  "name": "Cadence - Prospect AI",
+  "nodes": [
+    {
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "events": "worklfowCall",
+        "inputSource": "passthrough"
+      },
+      "id": "b4ab0542-a644-43c0-a824-53b7a4e7e224"
+    },
+    {
+      "name": "Build Prospect Search",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst task = String(input.taches || input.task || input.query || '').trim();\nconst priority = String(input.priorite || 'normale');\nconst outputType = String(input.output_type || 'liste_prospects');\nconst countMatch = task.match(/\\b(\\d{1,2})\\b/);\nconst targetCount = Math.min(Math.max(countMatch ? Number(countMatch[1]) : 10, 1), 20);\n\nfunction extractCity(text) {\n const patterns = [/\\b(?:à|a|in|near)\\s+([A-ZÀ-Ÿ][\\wÀ-ÿ' -]{2,})/i, /\\b(Gatineau|Ottawa|Montréal|Montreal|Québec|Quebec|Laval|Longueuil|Sherbrooke|Trois-Rivières)\\b/i];\n for (const pattern of patterns) {\n const match = text.match(pattern);\n if (match) return match[1].replace(/\\s+(?:Québec|Quebec|Canada)$/i, '').trim();\n }\n return 'Gatineau';\n}\n\nfunction extractSector(text) {\n const withoutCount = text.replace(/\\b(trouver|cherche|chercher|liste|prospects?|entreprises?|compagnies?|businesses?)\\b/gi, ' ')\n .replace(/\\b\\d{1,2}\\b/g, ' ')\n .replace(/\\b(?:à|a|in|near)\\s+[A-ZÀ-Ÿ][\\wÀ-ÿ' -]+/i, ' ')\n .replace(/\\s+/g, ' ')\n .trim();\n return withoutCount || 'entreprises locales';\n}\n\nconst city = extractCity(task);\nconst sector = extractSector(task);\nconst query = `${sector} ${city} Québec Canada site web téléphone contact adresse`;\n\nreturn [{\n json: {\n ...input,\n prospect_task: task,\n priority,\n outputType,\n targetCount,\n city,\n sector,\n serpQuery: query,\n generatedAt: new Date().toISOString()\n }\n}];"
+      },
+      "id": "cdec9acc-9ccb-4073-b916-c9cc81de0590"
+    },
+    {
+      "name": "Search SerpAPI",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        512,
+        0
+      ],
+      "parameters": {
+        "url": "https://serpapi.com/search.json",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "serpApi",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "engine",
+              "value": "google"
+            },
+            {
+              "name": "q",
+              "value": "={{ $json.serpQuery }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ ($json.city || \"Gatineau\") + \", Quebec, Canada\" }}"
+            },
+            {
+              "name": "google_domain",
+              "value": "google.ca"
+            },
+            {
+              "name": "gl",
+              "value": "ca"
+            },
+            {
+              "name": "hl",
+              "value": "fr"
+            },
+            {
+              "name": "num",
+              "value": "={{ Math.min($json.targetCount || 10, 20) }}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "588f45bf-de99-4201-bb32-cf956249795a"
+    },
+    {
+      "name": "Format Prospect Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        768,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const search = $input.first().json || {};\nconst request = $('Build Prospect Search').first().json || {};\nconst targetCount = Number(request.targetCount || 10);\n\nconst candidates = [];\nconst localRaw = search.local_results;\nif (Array.isArray(localRaw)) candidates.push(...localRaw.map(x => ({...x, source_type: 'local_results'})));\nif (localRaw && Array.isArray(localRaw.places)) candidates.push(...localRaw.places.map(x => ({...x, source_type: 'local_results.places'})));\nif (Array.isArray(search.place_results)) candidates.push(...search.place_results.map(x => ({...x, source_type: 'place_results'})));\nif (Array.isArray(search.organic_results)) candidates.push(...search.organic_results.map(x => ({...x, source_type: 'organic_results'})));\n\nconst seen = new Set();\nconst prospects = [];\nfor (const item of candidates) {\n const name = String(item.title || item.name || '').trim();\n if (!name) continue;\n const key = name.toLowerCase().replace(/[^a-z0-9à-ÿ]+/gi, '');\n if (seen.has(key)) continue;\n seen.add(key);\n const website = item.website || item.link || item.displayed_link || item.links?.website || '';\n const phone = item.phone || item.phone_number || item.extensions?.find?.(x => /^\\+?\\d|\\(\\d/.test(String(x))) || '';\n const address = item.address || item.snippet || item.rich_snippet?.top?.detected_extensions?.address || '';\n const rating = item.rating || item.reviews_rating || '';\n const reviews = item.reviews || item.reviews_original || '';\n const type = item.type || item.category || request.sector || '';\n const sourceUrl = item.place_id_search || item.link || item.serpapi_link || item.links?.directions || '';\n prospects.push({\n nom: name,\n secteur: type,\n ville_ou_region: request.city || '',\n adresse: String(address || '').replace(/\\s+/g, ' ').trim(),\n telephone: String(phone || '').trim(),\n site_web: String(website || '').trim(),\n note_google: rating || null,\n avis: reviews || null,\n source: item.source_type || 'serpapi',\n source_url: sourceUrl,\n pourquoi_bon_prospect: `Entreprise locale dans le secteur ${request.sector || 'cible'}, pertinente pour une approche Cadence orientee reception IA, suivis automatises et reduction des taches repetitives.`,\n douleur_probable: 'Appels manques, demandes de rendez-vous, suivis clients et gestion repetitive des demandes entrantes.',\n score_sur_100: rating ? 78 : 70,\n angle_approche: `Proposer a ${name} une reception IA et des suivis automatises pour capter plus de demandes sans ajouter de charge administrative.`,\n message_brouillon: `Bonjour, je vous contacte parce que Cadence aide les entreprises locales comme ${name} a automatiser la reception, les suivis et certaines taches repetitives. Seriez-vous ouvert a un court echange pour voir ou l'IA pourrait vous faire gagner du temps?`,\n prochaine_action: 'Verifier le site web et preparer un premier contact personnalise.',\n statut_hubspot_propose: 'a enrichir'\n });\n if (prospects.length >= targetCount) break;\n}\n\nconst status = prospects.length > 0 ? (prospects.length >= targetCount ? 'done' : 'partial') : 'no_results';\nconst resume = prospects.length > 0\n ? `Recherche terminee pour ${request.prospect_task || request.serpQuery}. ${prospects.length} prospect(s) structure(s) trouve(s) sur ${targetCount} demande(s).`\n : `Aucun prospect exploitable trouve pour ${request.prospect_task || request.serpQuery}.`;\n\nconst prospectsPreview = prospects.slice(0, 10).map((p, index) => ({\n rang: index + 1,\n nom: p.nom,\n telephone: p.telephone,\n site_web: p.site_web,\n score_sur_100: p.score_sur_100,\n prochaine_action: p.prochaine_action\n}));\n\nconst prospectLines = prospectsPreview.map(p => {\n const details = [p.nom];\n if (p.telephone) details.push(p.telephone);\n if (p.site_web) details.push(p.site_web);\n if (p.score_sur_100) details.push(`score ${p.score_sur_100}/100`);\n return `${p.rang}. ${details.join(' | ')}`;\n});\n\nconst sheetResult = [\n resume,\n '',\n prospectLines.length ? 'Prospects principaux:' : '',\n ...prospectLines,\n prospects.length > prospectsPreview.length ? `+ ${prospects.length - prospectsPreview.length} autre(s) prospect(s) dans la sortie complete n8n.` : '',\n '',\n prospects.length > 0\n ? 'Prochaine action: valider les entreprises retenues et personnaliser les premiers contacts.'\n : 'Prochaine action: preciser la recherche puis relancer.'\n].filter(Boolean).join('\\n');\n\nreturn [{\n json: {\n workflow: 'Cadence - Prospect AI',\n status,\n mode: 'deterministic_serpapi_search',\n task: request.prospect_task || '',\n query: request.serpQuery || '',\n targetCount,\n foundCount: prospects.length,\n resume,\n sheet_result: sheetResult,\n prospects_preview: prospectsPreview,\n prospects,\n guardrails: [\n 'Aucune creation HubSpot automatique',\n 'Donnees issues de SerpAPI/Google quand disponibles',\n 'Contacts personnels non inventes',\n 'Fiches brouillons pour validation humaine'\n ],\n nextSteps: prospects.length > 0\n ? ['Valider les entreprises retenues', 'Enrichir les fiches prioritaires', 'Creer ou mettre a jour HubSpot seulement sur demande explicite']\n : ['Preciser le secteur ou la ville', 'Relancer avec une requete plus ciblee'],\n rawSearchMetadata: {\n search_metadata: search.search_metadata || null,\n search_parameters: search.search_parameters || null\n },\n completedAt: new Date().toISOString()\n }\n}];"
+      },
+      "id": "19bf04ce-128f-4da4-8070-d9a497b14977"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Build Prospect Search",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Prospect Search": {
+      "main": [
+        [
+          {
+            "node": "Search SerpAPI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Search SerpAPI": {
+      "main": [
+        [
+          {
+            "node": "Format Prospect Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Prospect Results": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

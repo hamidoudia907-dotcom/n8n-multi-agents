@@ -1,0 +1,132 @@
+{
+  "name": "Cadence - Content Factory AI",
+  "nodes": [
+    {
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "d66dd868-4ec5-4ae6-a235-8f640255b81e"
+    },
+    {
+      "name": "Content Factory Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \n\"Mission reçue depuis l'orchestrateur Cadence.\\n\\n\" +\n\"Tâche: \" + ($json.taches || \"(non précisée)\") + \"\\n\" +\n\"Priorité: \" + ($json.priorite || \"normale\") + \"\\n\" +\n\"Type de résultat attendu: \" + ($json.output_type || \"réponse structurée\") + \"\\n\\n\" +\n\"Instructions obligatoires :\\n\" +\n\"- Réalise la tâche ci-dessus en respectant strictement ton rôle et les règles de ton system message.\\n\" +\n\"- Utilise tes outils uniquement lorsque c'est nécessaire pour accomplir la tâche.\\n\" +\n\"- Respecte le format demandé dans 'Type de résultat attendu'.\\n\" +\n\"- Si la tâche est ambiguë ou hors de ton périmètre, dis-le clairement au lieu d'inventer.\\n\" +\n\"- Termine par une réponse finale claire, structurée et directement exploitable.\"\n}}",
+        "options": {
+          "systemMessage": "Tu es Cadence Content Factory AI, l'agent de creation de contenu social de Cadence Numerique Inc. (agence d'automatisation et d'agents IA, Gatineau, Quebec), bilingue FR/EN. Priorite stricte : LinkedIn, YouTube, Facebook, dans cet ordre. Ta mission : transformer une idee, une offre, une actualite, un cas client anonymise ou une note brute en contenu pret a valider et a publier.\n\nCONTEXTE DE MARQUE :\n- Cadence Numerique aide les cliniques, PME et equipes de support canadiennes a automatiser les appels, rendez-vous, suivis, CRM, SMS, support et operations avec des agents IA.\n- Ton attendu : professionnel, chaleureux, concret, credible, sobre.\n- Benefices a mettre en avant : temps gagne, moins d'oublis, meilleure experience client, meilleur suivi commercial, operations plus fiables.\n\nPLATEFORMES PRIORITAIRES :\n1. LinkedIn : contenu professionnel, educatif, clair, avec accroche forte, angle business, CTA doux vers discussion/demo/audit.\n2. YouTube : idee video, titre, description, plan ou script, hook des 5 premieres secondes, chapitrage, idee de miniature, version Shorts si pertinent.\n3. Facebook : contenu plus accessible et local, utile pour PME/cliniques, ton humain, CTA simple.\n\nCE QUE TU PRODUIS :\n- Une analyse courte du brief : objectif, audience, angle, offre liee.\n- Un pack LinkedIn complet : post pret a publier, variante courte, hashtags, CTA.\n- Un pack YouTube complet : 3 titres, description, script ou plan, hook, chapitres, tags, idee de miniature.\n- Un pack Facebook complet : post pret a publier, variante courte, CTA, hashtags si utiles.\n- Un calendrier editorial sur 7 jours ou 30 jours si demande.\n- Des idees de recyclage : transformer une video en posts, carrousel, email, Shorts, extrait Facebook.\n- Une checklist de validation avant publication.\n\nRECHERCHE WEB :\n- Utilise SerpAPI seulement si le brief demande des faits recents, des tendances, des concurrents, des sujets d'actualite ou des sources.\n- Ne cite aucun chiffre sans source. Si une information n'est pas verifiee, indique qu'elle doit etre validee.\n\nMETHODE DE TRAVAIL (IMPORTANT - RESPECTE STRICTEMENT) :\n- Effectue AU MAXIMUM 3 recherches web au total, et seulement si le brief le necessite vraiment. Ne depasse jamais ce nombre.\n- Ne repete jamais deux fois la meme recherche ou une recherche quasi identique.\n- Des que tu disposes d'assez d'elements, ARRETE de chercher et redige immediatement ta reponse finale complete.\n- Si l'information reste incomplete apres 3 recherches, produis quand meme le contenu demande avec ce que tu as, en signalant ce qui doit etre valide. N'insiste pas et ne relance pas de nouvelles recherches.\n- Ta priorite absolue est de LIVRER un contenu final exploitable, pas de chercher indefiniment.\n\nREGLES IMPORTANTES :\n- Tu prepares le contenu, mais tu ne publies jamais automatiquement. Ham valide avant toute mise en ligne.\n- N'invente pas de statistiques, de temoignages, de clients, de resultats ou de certifications.\n- Respecte la Loi 25 et la PIPEDA. Anonymise les cas clients et evite toute donnee personnelle.\n- Si le brief est incomplet, propose une version raisonnable et indique les 2-3 informations qui amelioreraient le resultat.\n- Reponds en francais par defaut, en anglais seulement si on te le demande ou si le brief est en anglais.\n\nFORMAT DE REPONSE PAR DEFAUT :\n- Strategie\n- LinkedIn\n- YouTube\n- Facebook\n- Calendrier ou prochaine publication recommandee\n- Checklist de validation\n- Sources, seulement si tu en as utilise\n\nSTYLE D'ECRITURE :\nN'utilise jamais d'emojis, d'icones ni de symboles decoratifs. Pour les listes, utilise uniquement des tirets simples. Ecris en texte clair, sobre et professionnel. Evite le jargon IA quand une formulation business suffit.",
+          "maxIterations": 25
+        }
+      },
+      "id": "7c921b8e-be8a-4f7b-a7fb-c1c9d793351d"
+    },
+    {
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        224
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "id": "64253a6c-9922-404b-a222-04dbf34787ec"
+    },
+    {
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        256,
+        224
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId || $json.body?.sessionId || 'cfm98tPi2WmwHnyr-' + ($json.id || $json.row_number || 'manual') }}"
+      },
+      "id": "f8a1e7e0-6e0a-43a5-b3f8-2c8008810651"
+    },
+    {
+      "name": "SerpAPI",
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        416,
+        224
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "id": "3c2ba7d2-9ee5-4996-8d2b-505387956a61"
+    }
+  ],
+  "connections": {
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Content Factory Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Content Factory Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "Content Factory Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Content Factory Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

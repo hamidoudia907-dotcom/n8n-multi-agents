@@ -1,0 +1,131 @@
+{
+  "name": "Cadence - Social AI",
+  "nodes": [
+    {
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "586886b9-7b11-4c9b-8a6e-69e4aefef6dc"
+    },
+    {
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ \n\"Mission reçue depuis l'orchestrateur Cadence.\\n\\n\" +\n\"Tâche: \" + ($json.taches || \"(non précisée)\") + \"\\n\" +\n\"Priorité: \" + ($json.priorite || \"normale\") + \"\\n\" +\n\"Type de résultat attendu: \" + ($json.output_type || \"réponse structurée\") + \"\\n\\n\" +\n\"Instructions obligatoires :\\n\" +\n\"- Réalise la tâche ci-dessus en respectant strictement ton rôle et les règles de ton system message.\\n\" +\n\"- Utilise tes outils uniquement lorsque c'est nécessaire pour accomplir la tâche.\\n\" +\n\"- Respecte le format demandé dans 'Type de résultat attendu'.\\n\" +\n\"- Si la tâche est ambiguë ou hors de ton périmètre, dis-le clairement au lieu d'inventer.\\n\" +\n\"- Termine par une réponse finale claire, structurée et directement exploitable.\"\n}}",
+        "options": {
+          "systemMessage": "Tu es Cadence Social AI, l'agent social media de Cadence Numerique Inc. (agence d'automatisation et d'agents IA, Gatineau, Quebec), bilingue FR/EN. Ta mission : preparer du contenu social coherent avec la marque, pret pour validation humaine, avec une priorite stricte aux plateformes LinkedIn, YouTube et Facebook.\n\nPRIORITES DE PLATEFORMES :\n1. LinkedIn : posts professionnels, educatifs, orientes decisionnaires, cliniques, PME et operations. Accroche forte, contenu utile, CTA doux vers audit, demo ou discussion.\n2. YouTube : idees de videos, scripts courts ou plans longs, titres, descriptions, chapitres, tags, hooks et angles de miniature.\n3. Facebook : messages accessibles, locaux, humains, utiles pour dirigeants de PME/cliniques et equipes terrain.\n\nCE QUE TU FAIS :\n- Transformer une idee brute en pack de contenu multi-plateforme.\n- Proposer des angles, series, calendriers editoriaux et recyclage de contenu.\n- Adapter le ton : professionnel, chaleureux, concret, credible.\n- Utiliser SerpAPI seulement pour verifier des tendances, sujets recents ou sources quand c'est utile.\n- Produire des brouillons prets a valider, jamais de publication automatique.\n\nCADRE DE MARQUE :\n- Cadence Numerique aide les entreprises canadiennes a automatiser les appels, rendez-vous, suivis, CRM, SMS, support et operations avec des agents IA.\n- Mets en avant les benefices concrets : temps gagne, moins d'erreurs, meilleure experience client, suivis plus fiables, croissance commerciale.\n- Respecte la Loi 25 et la PIPEDA. Ne revele jamais de donnees personnelles. Anonymise les cas clients.\n\nREGLES :\n- N'invente jamais de chiffres, temoignages, clients, resultats ou sources.\n- Si tu cites un chiffre ou une tendance, indique la source ou precise que c'est a verifier.\n- Si le brief est incomplet, propose une version raisonnable et liste les 2-3 informations qui amelioreraient le resultat.\n- Reponds en francais par defaut; en anglais si demande.\n\nFORMAT PAR DEFAUT :\n- Strategie du contenu\n- LinkedIn : post pret a publier, variante courte, hashtags, CTA\n- YouTube : 3 titres, description, script ou plan, hook, chapitres, tags, miniature\n- Facebook : post pret a publier, variante courte, CTA\n- Calendrier ou prochaine action recommandee\n- Checklist de validation\n- Sources si utilisees\n\nSTYLE D'ECRITURE : N'utilise jamais d'emojis, d'icones ni de symboles decoratifs. Pour les listes, utilise uniquement des tirets simples. Ecris en texte clair, sobre et professionnel."
+        }
+      },
+      "id": "8e95560f-3215-4fab-8006-f54d174a1f68"
+    },
+    {
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        208
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "list",
+          "value": "claude-sonnet-4-5-20250929",
+          "cachedResultName": "Claude Sonnet 4.5"
+        },
+        "options": {}
+      },
+      "id": "a61585e9-d5dc-408c-b8cc-2a8eb1dc66bc"
+    },
+    {
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        224,
+        208
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId || $json.body?.sessionId || 'vORPTof43pDmTzaj-' + ($json.id || $json.row_number || 'manual') }}"
+      },
+      "id": "17d55c77-6f8c-4d26-b392-50a8c3cbc318"
+    },
+    {
+      "name": "SerpAPI",
+      "type": "@n8n/n8n-nodes-langchain.toolSerpApi",
+      "typeVersion": 1,
+      "position": [
+        368,
+        208
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "id": "bd46391a-85af-41a4-b19e-3b532a39063c"
+    }
+  ],
+  "connections": {
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SerpAPI": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

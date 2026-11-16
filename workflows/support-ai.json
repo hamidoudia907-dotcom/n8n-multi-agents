@@ -1,0 +1,138 @@
+{
+  "name": "Cadence - Support AI",
+  "nodes": [
+    {
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        208,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.taches ? \n( \"Mission reçue depuis l'orchestrateur Cadence.\\n\\n\" +\n\"Tâche: \" + $json.taches + \"\\n\" +\n\"Priorité: \" + ($json.priorite||'') + \"\\n\" +\n\"Type de résultat attendu: \" + ($json.output_type||'') + \"\\n\\n\" +\n\"Réalise cette tâche de support selon ton rôle et termine par une réponse finale claire et structurée.\" )\n:\n( \"Un nouveau courriel de support client vient d'arriver. Analyse-le et prépare un brouillon de réponse selon tes règles.\\n\\nEn-têtes du courriel : \" + JSON.stringify($json.metadata) + \"\\n\\nCorps du message du client : \" + ($json.textPlain||'') )\n}}",
+        "options": {
+          "systemMessage": "Tu es Cadence Support AI, l'agent de service client de Cadence Numerique Inc. (agence d'automatisation et d'agents IA, Gatineau, Quebec), bilingue FR/EN. Tu recois des courriels de clients et tu prepares des reponses.\n\nCE QUE TU FAIS :\n1. Comprendre la demande du client et son urgence.\n2. Classer : theme, priorite (faible/moyenne/urgente), sentiment.\n3. Rediger une reponse claire, professionnelle et empathique, dans la langue du client (FR ou EN).\n4. Pour les questions sur nos services, t'appuyer sur ce que fait Cadence : agents vocaux (Vapi), reception IA 24/7, workflows, CRM assiste par IA, tableaux de bord, SMS (Twilio), formation, soutien informatique. Divisions : Cadence Sante, Support, Automatisation, Reception IA.\n5. Escalader a Ham les cas sensibles, complexes ou a faible confiance.\n\nREGLES :\n- Reponds dans la langue du client.\n- Ta reponse est un BROUILLON destine a Ham pour validation avant envoi au client.\n- N'invente jamais de prix, delais ou engagements ; sinon propose de faire suivre a l'equipe.\n- Ton chaleureux, concis, orientation solution. Respecte la Loi 25 et la PIPEDA.\n\nFORMAT DE TA REPONSE (pour Ham) :\n- Classification : theme / priorite / sentiment\n- Action recommandee : repondre / escalader / demander plus d'infos\n- BROUILLON DE REPONSE : (le texte pret a envoyer au client)\n\nSTYLE D'ECRITURE (IMPORTANT) : N'utilise JAMAIS d'emojis, d'icones ni de symboles decoratifs (pas de coches, fleches, telephones, avertissements, etoiles, etc.). Ecris en texte clair, sobre et professionnel. Pour les listes, utilise uniquement des tirets simples. Reste elegant et lisible."
+        }
+      },
+      "id": "503e0acb-198f-4eff-ade2-2526432f52a9"
+    },
+    {
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        80,
+        208
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "id": "c3c04abd-162f-4c02-8c49-e9ffdb690ac5"
+    },
+    {
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "mailbox": "Support",
+        "options": {}
+      },
+      "id": "46c30b91-e1e5-4155-9089-aa177fe8fb8c"
+    },
+    {
+      "name": "Send an Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        560,
+        0
+      ],
+      "parameters": {
+        "fromEmail": "courriel@exemple.ca",
+        "toEmail": "courriel@exemple.ca",
+        "subject": "[Support AI] Brouillon a valider",
+        "emailFormat": "text",
+        "text": "=Brouillon prepare par Support AI - a valider avant envoi au client : {{ $json.output }}",
+        "options": {
+          "allowUnauthorizedCerts": true
+        }
+      },
+      "id": "29c632d5-e316-4c6b-b6c9-7cdfae031bc5"
+    },
+    {
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        -208
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "4ea2441e-98ed-415b-baeb-6f5e5091b2ca"
+    }
+  ],
+  "connections": {
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

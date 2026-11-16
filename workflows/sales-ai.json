@@ -1,0 +1,53 @@
+{
+  "name": "Cadence - Sales AI",
+  "nodes": [
+    {
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "132c7412-4915-49db-b2ba-417c012d1adb"
+    },
+    {
+      "name": "Generate Sales Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        260,
+        0
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst task = String(input.taches || input.task || '').trim() || 'Rediger un message de prospection';\nconst priority = String(input.priorite || 'normale');\nconst outputType = String(input.output_type || 'message_vente');\n\nfunction detectSector(text) {\n const lower = text.toLowerCase();\n if (lower.includes('garage') || lower.includes('automobile') || lower.includes('mécanique') || lower.includes('mecanique')) return 'garages automobiles';\n if (lower.includes('dentaire') || lower.includes('dentiste')) return 'cliniques dentaires';\n if (lower.includes('clinique')) return 'cliniques';\n if (lower.includes('restaurant')) return 'restaurants';\n return 'PME de services';\n}\n\nconst sector = detectSector(task);\nconst offer = sector === 'garages automobiles'\n ? 'reception IA, relances automatisees et suivi des demandes de rendez-vous ou de soumissions'\n : 'reception IA, automatisation des suivis et workflows simples pour reduire les taches repetitives';\n\nconst message = `Bonjour, je vous contacte parce que Cadence Numerique aide les ${sector} a mieux gerer les appels, les demandes entrantes et les suivis grace a des agents IA et des automatisations simples.\\n\\nL'objectif est concret : reduire les appels manques, accelerer les reponses aux clients et liberer du temps administratif sans remplacer votre equipe.\\n\\nSeriez-vous ouvert a un court echange de 15 minutes pour voir si une reception IA ou un workflow de suivi pourrait etre utile dans votre contexte?`;\n\nconst relanceJ3 = `Bonjour, je me permets une courte relance. Plusieurs ${sector} perdent du temps sur les appels manques, les suivis et les demandes repetitives. Cadence peut aider a automatiser une partie de ce travail sans complexifier vos operations. Est-ce qu'un echange rapide cette semaine serait possible?`;\nconst relanceJ7 = `Bonjour, derniere petite relance de ma part. Si ameliorer la gestion des appels et des suivis clients devient une priorite, je peux vous preparer un exemple concret adapte a votre activite.`;\n\nconst sheetResult = [\n `Message de prospection - ${sector}`,\n '',\n message,\n '',\n 'Relance J+3:',\n relanceJ3,\n '',\n 'Relance J+7:',\n relanceJ7,\n '',\n 'Prochaine action: valider le message, choisir 5 a 10 prospects prioritaires, puis personnaliser la premiere ligne.'\n].join('\\n');\n\nreturn [{\n json: {\n workflow: 'Cadence - Sales AI',\n status: 'done',\n mode: 'deterministic_sales_message',\n task,\n priority,\n outputType,\n sheet_result: sheetResult,\n priorite_commerciale: priority === 'haute' ? 'haute' : 'moyenne',\n prospect_ou_segment_concerne: sector,\n raisons_de_priorisation: [\n 'Segment local avec appels et suivis frequents',\n 'Potentiel clair pour automatiser la reception, les relances et les demandes repetitives',\n 'Approche commerciale simple a personnaliser apres validation humaine'\n ],\n offre_cadence_pertinente: offer,\n message_de_contact_brouillon: message,\n sequence_relance: {\n j1: message,\n j3: relanceJ3,\n j7: relanceJ7\n },\n objections_et_reponses: [\n {\n objection: 'Nous avons deja quelqu un qui repond au telephone.',\n reponse: 'Justement, l IA peut soutenir l equipe lors des periodes chargees, hors heures ouvrables ou pour les demandes repetitives.'\n },\n {\n objection: 'C est surement trop complexe.',\n reponse: 'L approche peut commencer par un seul cas simple : appels manques, rappels ou demandes de rendez-vous.'\n },\n {\n objection: 'Nous ne voulons pas perdre le contact humain.',\n reponse: 'Le but est de garder l humain pour les echanges importants et de deleguer seulement les taches repetitives.'\n }\n ],\n prochaine_action_recommandee: 'Valider le message, choisir 5 a 10 prospects prioritaires, puis personnaliser la premiere ligne pour chaque entreprise.',\n action_hubspot: 'aucune',\n guardrails: [\n 'Aucun courriel envoye automatiquement',\n 'Aucun deal HubSpot cree automatiquement',\n 'Message brouillon a valider par Ham avant utilisation'\n ],\n completedAt: new Date().toISOString()\n }\n}];"
+      },
+      "id": "d8c6792d-9755-4b83-a0a4-3244d2e0222a"
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Generate Sales Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Sales Response": {
+      "main": [
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}

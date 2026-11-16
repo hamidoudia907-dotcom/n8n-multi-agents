@@ -1,0 +1,105 @@
+{
+  "name": "Cadence - Socle Agents",
+  "nodes": [
+    {
+      "name": "When chat message received",
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "options": {}
+      },
+      "id": "09af8a13-4c0c-419c-a085-0295f3fd0e07"
+    },
+    {
+      "name": "AI Agent",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        752,
+        -160
+      ],
+      "parameters": {
+        "options": {
+          "systemMessage": "Tu es Cadence Assistant, l'agent IA de Cadence Numerique Inc. Tu aides Ham, le dirigeant, avec professionnalisme, clarte et concision. Reponds en francais. Si une demande implique une action sensible (envoi de courriel, paiement, engagement contractuel), tu prepares le contenu mais tu demandes une validation humaine avant toute execution.\n\nSTYLE D'ECRITURE (IMPORTANT) : N'utilise JAMAIS d'emojis, d'icones ni de symboles decoratifs (pas de coches, fleches, telephones, avertissements, etoiles, etc.). Ecris en texte clair, sobre et professionnel. Pour les listes, utilise uniquement des tirets simples. Reste elegant et lisible."
+        }
+      },
+      "id": "b1f8af0c-9a5e-437d-84b1-017ed1cba988"
+    },
+    {
+      "name": "Anthropic Chat Model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatAnthropic",
+      "typeVersion": 1.3,
+      "position": [
+        624,
+        48
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "claude-sonnet-4-6",
+          "mode": "list",
+          "cachedResultName": "Claude Sonnet 4.6"
+        },
+        "options": {}
+      },
+      "id": "b8e5b37b-3695-4eae-b210-da18d336d2f4"
+    },
+    {
+      "name": "Simple Memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        768,
+        48
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $json.sessionId || $json.body?.sessionId || 'TQxNApGMPFTTOBkg-' + ($json.id || $json.row_number || 'manual') }}"
+      },
+      "id": "5f337b96-a323-42ee-bf5f-326945ca4014"
+    }
+  ],
+  "connections": {
+    "Anthropic Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "pinData": {}
+}
