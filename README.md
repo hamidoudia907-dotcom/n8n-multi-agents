@@ -57,9 +57,8 @@ Chaque agent reçoit le même gabarit de mission (tâche, priorité, type de ré
 
 - Si un agent échoue, la ligne reste à `pending` et la colonne `erreur` n'est pas remplie : il manque une branche de gestion d'erreur dans l'orchestrateur.
 - Le déclenchement toutes les heures convient à des tâches de fond, pas à des demandes urgentes.
-- Les agents n'utilisent pas tous la même version du modèle (Claude Sonnet 4.5 ou 4.6), selon la date de leur dernière mise à jour.
 - La mémoire de conversation est indexée par ligne de la feuille ; deux tâches distinctes ne partagent pas de contexte.
 
 ## Technologies
 
-n8n (Execute Workflow, Switch, nœuds LangChain), Claude d'Anthropic, SerpAPI, HubSpot, Google Sheets, IMAP/SMTP.
+n8n (Execute Workflow, Switch, nœuds LangChain), Claude Sonnet 4.6 d'Anthropic (même modèle pour tous les agents), SerpAPI, HubSpot, Google Sheets, IMAP/SMTP.
