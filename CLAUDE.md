@@ -34,7 +34,7 @@ Le nom interne de chaque workflow suit le format `Cadence - <Nom> AI`. Le garder
 - Sous-workflows : `executeWorkflowTrigger` (1.1) côté agent, `executeWorkflow` (1.3) côté orchestrateur.
 - Gabarit de mission commun : tâche, priorité, type de résultat attendu, et consigne de signaler quand la demande sort du rôle de l'agent.
 - Colonnes de la feuille : `id, agents, taches, priorite, output_type, statut, resultats, date_creation, date_fin, erreur`. Ne pas les renommer sans mettre à jour l'orchestrateur et le README.
-- Modèles actuels : `claude-sonnet-4-5-20250929` sur 7 agents, `claude-sonnet-4-6` sur 7 autres. Ne pas changer de modèle en passant ; si une harmonisation est demandée, la faire dans un commit à part.
+- Modèle : `claude-sonnet-4-6` sur les 14 nœuds `lmChatAnthropic`. Garder un seul modèle pour tous les agents ; un changement de modèle se fait partout à la fois, dans un commit à part.
 
 ## Modifier un workflow
 
@@ -57,7 +57,6 @@ Le vrai test reste dans n8n : importer sur une instance de test (jamais directem
 
 - Gestion d'erreur absente dans l'orchestrateur : un agent qui échoue laisse la ligne à `pending` et `erreur` vide.
 - Déclenchement horaire seulement, pas adapté aux demandes urgentes.
-- Versions de modèle mélangées (voir plus haut).
 
 ## Commits
 
